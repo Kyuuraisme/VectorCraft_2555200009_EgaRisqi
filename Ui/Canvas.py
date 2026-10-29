@@ -62,17 +62,42 @@ class CanvasView:
                 CurveEngine.draw_bezier(px_array, obj.points[0], obj.points[1], obj.points[2], obj.points[3], color_outside, algo, scr_w, scr_h)
             CurveEngine.draw_bezier(px_array, obj.points[0], obj.points[1], obj.points[2], obj.points[3], color, algo, scr_w, scr_h)
 
+        elif obj.type == "POLYGON" and len(obj.points) >= 2:
+            segment_count = len(obj.points) if not force_color else len(obj.points) - 1
+            for i in range(segment_count):
+                p0 = obj.points[i]
+                p1 = obj.points[(i + 1) % len(obj.points)]
+                Rasterizer.draw_line(px_array, p0[0], p0[1], p1[0], p1[1], color, algo, scr_w, scr_h)
+
     def _render_gizmos(self, screen):
         # Frame Artboard
         ab = self.state.artboard
         pygame.draw.rect(screen, (0, 120, 215), (ab[0], ab[1], ab[2]-ab[0], ab[3]-ab[1]), 2)
         pygame.draw.circle(screen, (0, 120, 215), (int(ab[2]), int(ab[3])), 6) # Artboard Resizer
         
+        # Titik dan garis sementara saat membuat poligon
+        if self.state.tool == "POLYGON" and self.state.polygon_points:
+            points = [(int(p[0]), int(p[1])) for p in self.state.polygon_points]
+            for index in range(1, len(points)):
+                pygame.draw.line(screen, (0, 180, 0), points[index - 1], points[index], 2)
+            for point in points:
+                pygame.draw.circle(screen, (255, 255, 255), point, 6)
+                pygame.draw.circle(screen, (0, 180, 0), point, 6, 2)
+                pygame.draw.circle(screen, (255, 50, 50), point, 2)
+            if len(points) > 0:
+                pygame.draw.line(screen, (100, 180, 100), points[-1], pygame.mouse.get_pos(), 1)
+
         # Transform Gizmo Objek Aktif
         if self.state.tool == "SELECT" and self.state.selected_obj:
             bbox = self.state.selected_obj.get_bounding_box()
             pygame.draw.rect(screen, (255, 50, 50), (bbox[0], bbox[1], bbox[2]-bbox[0], bbox[3]-bbox[1]), 1)
             pygame.draw.rect(screen, (0, 255, 0), (bbox[2]-4, bbox[3]-4, 8, 8)) # Scale Anchor
+
+            px, py = self.state.selected_obj.get_pivot()
+            pygame.draw.line(screen, (0, 120, 215), (int(px), int(py)), (int(px), int(py - 55)), 1)
+            pygame.draw.circle(screen, (255, 180, 0), (int(px), int(py)), 7, 2)
+            pygame.draw.circle(screen, (255, 255, 255), (int(px), int(py)), 2)
+            pygame.draw.circle(screen, (0, 120, 215), (int(px), int(py - 55)), 8, 2)
             
             if self.state.selected_obj.type == "BEZIER":
                 pts = self.state.selected_obj.points

@@ -39,6 +39,22 @@ class Matrix3x3:
         return mat
 
     @staticmethod
+    def reflection(flip_x=False, flip_y=False):
+        mat = np.identity(3)
+        if flip_x:
+            mat[0, 0] = -1
+        if flip_y:
+            mat[1, 1] = -1
+        return mat
+
+    @staticmethod
+    def pivot_transform(linear, pivot_x, pivot_y):
+        """T(pivot) * linear * T(-pivot)."""
+        t1 = Matrix3x3.translation(-pivot_x, -pivot_y)
+        t2 = Matrix3x3.translation(pivot_x, pivot_y)
+        return np.dot(t2, np.dot(linear, t1))
+
+    @staticmethod
     def transform_point(matrix, x, y):
         """Menerapkan transformasi matriks homogen 3x3 ke koordinat 2D (x, y)."""
         vec = np.array([x, y, 1.0])

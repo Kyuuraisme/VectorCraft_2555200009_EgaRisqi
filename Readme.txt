@@ -51,6 +51,13 @@ Untuk berpindah mode kerja, pilih menu, atau melakukan manipulasi objek, gunakan
 *   **`R`** : Memutar (*Rotate*) objek aktif sebesar **+15°** searah jarum jam secara homogen terhadap titik pusat objek (*Center Pivot*).
 *   **`S`** : Memiringkan (*Shear*) objek aktif secara linear pada koordinat sumbu X sebesar **+0.1**.
 *   **`DELETE` / `BACKSPACE`** : Menghapus objek vektor yang sedang terpilih dari lembar kerja.
+*   **`G`** : Membuat poligon; klik setiap titik, lalu tekan `ENTER` untuk menyelesaikannya.
+*   **`Panah` / `Shift+Panah`** : Menggeser objek 1 px / 10 px.
+*   **`R` / `Q`** : Rotasi objek terhadap pivot sebesar +15° / -15°.
+*   **`S` / `T`** : Shear pada sumbu X / Y sebesar +0.1.
+*   **`H` / `J`** : Flip/refleksi horizontal / vertikal terhadap pivot.
+*   **`[` / `]`** : Perbesar/kurangi skala objek 10% terhadap pivot.
+*   **`F`** : Mengembalikan pivot ke pusat bounding box objek.
 
 ---
 

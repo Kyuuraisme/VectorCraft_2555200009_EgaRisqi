@@ -20,7 +20,11 @@ class InspectorView:
             bbox = state.selected_obj.get_bounding_box()
             print_lbl(f"Tipe: {state.selected_obj.type}")
             print_lbl(f"W: {int(bbox[2]-bbox[0])}px | H: {int(bbox[3]-bbox[1])}px")
-            print_lbl("[R] Putar +15° Pivot")
-            print_lbl("[S] Shear Kanan (+0.1)")
+            px, py = state.selected_obj.get_pivot()
+            print_lbl(f"Pivot: {int(px)}, {int(py)}")
+            print_lbl("Panah: Geser | Shift: 10px")
+            print_lbl("R/Q: Rotasi +/-15° | S/T: Shear")
+            print_lbl("H/J: Flip X/Y | [/] Skalakan")
+            print_lbl("F: Reset Pivot | Seret poros")
         else:
             print_lbl("Status: Tidak ada objek")

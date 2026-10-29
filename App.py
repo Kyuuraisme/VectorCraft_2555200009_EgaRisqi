@@ -21,6 +21,16 @@ class VectorShape:
     def __init__(self, type_str):
         self.type = type_str
         self.points = []
+        self.pivot = None
+    def get_pivot(self):
+        if self.pivot is not None:
+            return tuple(self.pivot)
+        bbox = self.get_bounding_box()
+        return ((bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2)
+    def set_pivot(self, x, y):
+        self.pivot = [float(x), float(y)]
+    def reset_pivot(self):
+        self.pivot = None
     def get_bounding_box(self):
         xs = [p[0] for p in self.points]
         ys = [p[1] for p in self.points]
@@ -29,6 +39,9 @@ class VectorShape:
         for i in range(len(self.points)):
             nx, ny = Matrix3x3.transform_point(matrix, self.points[i][0], self.points[i][1])
             self.points[i] = [nx, ny]
+        if self.pivot is not None:
+            px, py = Matrix3x3.transform_point(matrix, self.pivot[0], self.pivot[1])
+            self.pivot = [px, py]
     def is_hit(self, px, py, threshold=8):
         for p in self.points:
             if math.hypot(p[0] - px, p[1] - py) <= threshold: return True
@@ -50,6 +63,8 @@ class AppStateManager:
         self.active_handle_idx = -1
         self.temp_points = []
         self.scale_anchor = (0, 0)
+        self.rotation_angle_start = 0.0
+        self.polygon_points = []
 
 class VectorCraftApp:
     def __init__(self):
@@ -94,6 +109,10 @@ class VectorCraftApp:
                 elif event.key == pygame.K_l: self.state.tool = "LINE"
                 elif event.key == pygame.K_c: self.state.tool = "CIRCLE"
                 elif event.key == pygame.K_p: self.state.tool = "BEZIER"
+                elif event.key == pygame.K_g:
+                    self.state.tool = "POLYGON"
+                    self.state.polygon_points = []
+                    self.state.drawing = False
                 elif event.key == pygame.K_b: self.state.algo = "Bresenham"
                 elif event.key == pygame.K_d: self.state.algo = "DDA"
                 elif event.key == pygame.K_o: self.state.preview_outside = not self.state.preview_outside
@@ -101,25 +120,50 @@ class VectorCraftApp:
                     if self.state.selected_obj and self.state.tool == "SELECT":
                         self.state.objects.remove(self.state.selected_obj)
                         self.state.selected_obj = None
-                
-                # Aksi Transformasi via Matriks Homogen Homogen 3x3 Berbasis Pivot Center Bounding Box
+                elif event.key == pygame.K_RETURN and self.state.tool == "POLYGON" and len(self.state.polygon_points) >= 3:
+                    nob = VectorShape("POLYGON")
+                    nob.points = [list(p) for p in self.state.polygon_points]
+                    self.state.objects.append(nob)
+                    self.state.selected_obj = nob
+                    self.state.polygon_points = []
+                    self.state.tool = "SELECT"
+                elif event.key == pygame.K_ESCAPE:
+                    self.state.polygon_points = []
+                    self.state.tool = "SELECT"
+
                 elif self.state.selected_obj and self.state.tool == "SELECT":
-                    bbox = self.state.selected_obj.get_bounding_box()
-                    cx = (bbox[0] + bbox[2]) / 2
-                    cy = (bbox[1] + bbox[3]) / 2
-                    
-                    if event.key == pygame.K_r: # Rotasi Homogen 15 derajat
-                        t1 = Matrix3x3.translation(-cx, -cy)
-                        r = Matrix3x3.rotation(math.radians(15))
-                        t2 = Matrix3x3.translation(cx, cy)
-                        net_matrix = np.dot(t2, np.dot(r, t1))
-                        self.state.selected_obj.apply_transform(net_matrix)
-                    elif event.key == pygame.K_s: # Shear X positif sebesar 0.1
-                        t1 = Matrix3x3.translation(-cx, -cy)
-                        sh = Matrix3x3.shear(0.1, 0.0)
-                        t2 = Matrix3x3.translation(cx, cy)
-                        net_matrix = np.dot(t2, np.dot(sh, t1))
-                        self.state.selected_obj.apply_transform(net_matrix)
+                    px, py = self.state.selected_obj.get_pivot()
+                    step = 10 if pygame.key.get_mods() & pygame.KMOD_SHIFT else 1
+                    if event.key == pygame.K_LEFT:
+                        self.state.selected_obj.apply_transform(Matrix3x3.translation(-step, 0))
+                    elif event.key == pygame.K_RIGHT:
+                        self.state.selected_obj.apply_transform(Matrix3x3.translation(step, 0))
+                    elif event.key == pygame.K_UP:
+                        self.state.selected_obj.apply_transform(Matrix3x3.translation(0, -step))
+                    elif event.key == pygame.K_DOWN:
+                        self.state.selected_obj.apply_transform(Matrix3x3.translation(0, step))
+                    elif event.key == pygame.K_r:
+                        net = Matrix3x3.pivot_transform(Matrix3x3.rotation(math.radians(15)), px, py)
+                        self.state.selected_obj.apply_transform(net)
+                    elif event.key == pygame.K_q:
+                        net = Matrix3x3.pivot_transform(Matrix3x3.rotation(math.radians(-15)), px, py)
+                        self.state.selected_obj.apply_transform(net)
+                    elif event.key == pygame.K_s:
+                        net = Matrix3x3.pivot_transform(Matrix3x3.shear(0.1, 0.0), px, py)
+                        self.state.selected_obj.apply_transform(net)
+                    elif event.key == pygame.K_t:
+                        net = Matrix3x3.pivot_transform(Matrix3x3.shear(0.0, 0.1), px, py)
+                        self.state.selected_obj.apply_transform(net)
+                    elif event.key == pygame.K_h:
+                        self.state.selected_obj.apply_transform(Matrix3x3.pivot_transform(Matrix3x3.reflection(True, False), px, py))
+                    elif event.key == pygame.K_j:
+                        self.state.selected_obj.apply_transform(Matrix3x3.pivot_transform(Matrix3x3.reflection(False, True), px, py))
+                    elif event.key == pygame.K_f:
+                        self.state.selected_obj.reset_pivot()
+                    elif event.key == pygame.K_LEFTBRACKET:
+                        self.state.selected_obj.apply_transform(Matrix3x3.pivot_transform(Matrix3x3.scaling(0.9, 0.9), px, py))
+                    elif event.key == pygame.K_RIGHTBRACKET:
+                        self.state.selected_obj.apply_transform(Matrix3x3.pivot_transform(Matrix3x3.scaling(1.1, 1.1), px, py))
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 # 1. Deteksi Handle Artboard Resize
@@ -130,11 +174,20 @@ class VectorCraftApp:
                 # 2. Mode Seleksi Objek & Gizmo Handle
                 if self.state.tool == "SELECT":
                     if self.state.selected_obj:
+                        px, py = self.state.selected_obj.get_pivot()
+                        if math.hypot(mx - px, my - py) <= 10:
+                            self.state.drag_mode = "MOVE_PIVOT"
+                            continue
+                        rx, ry = px, py - 55
+                        if math.hypot(mx - rx, my - ry) <= 10:
+                            self.state.drag_mode = "ROTATE_OBJ"
+                            self.state.rotation_angle_start = math.atan2(my - py, mx - px)
+                            continue
                         bbox = self.state.selected_obj.get_bounding_box()
                         if math.hypot(mx - bbox[2], my - bbox[3]) <= 8:
                             self.state.drag_mode = "SCALE_OBJ"
                             self.state.drag_start = (mx, my)
-                            self.state.scale_anchor = (bbox[0], bbox[1])
+                            self.state.scale_anchor = (px, py)
                             continue
                         
                         if self.state.selected_obj.type == "BEZIER":
@@ -170,6 +223,11 @@ class VectorCraftApp:
                         self.state.drawing = False
                         self.state.selected_obj = nob
                         self.state.tool = "SELECT"
+                elif self.state.tool == "POLYGON":
+                    if len(self.state.polygon_points) < 2 or math.hypot(mx - self.state.polygon_points[-1][0], my - self.state.polygon_points[-1][1]) > 4:
+                        self.state.polygon_points.append([mx, my])
+                        self.state.drawing = True
+                        self.state.temp_points = self.state.polygon_points
 
             elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 if self.state.drawing and self.state.tool in ["LINE", "CIRCLE"]:
@@ -191,24 +249,29 @@ class VectorCraftApp:
                     mat = Matrix3x3.translation(dx, dy)
                     self.state.selected_obj.apply_transform(mat)
                     self.state.drag_start = (mx, my)
+
+                elif self.state.drag_mode == "MOVE_PIVOT" and self.state.selected_obj:
+                    self.state.selected_obj.set_pivot(mx, my)
+
+                elif self.state.drag_mode == "ROTATE_OBJ" and self.state.selected_obj:
+                    px, py = self.state.selected_obj.get_pivot()
+                    angle = math.atan2(my - py, mx - px)
+                    delta = angle - self.state.rotation_angle_start
+                    if abs(delta) > 0.0001:
+                        net = Matrix3x3.pivot_transform(Matrix3x3.rotation(delta), px, py)
+                        self.state.selected_obj.apply_transform(net)
+                    self.state.rotation_angle_start = angle
                     
                 elif self.state.drag_mode == "DRAG_HANDLE" and self.state.selected_obj:
                     self.state.selected_obj.points[self.state.active_handle_idx] = [mx, my]
                     
                 elif self.state.drag_mode == "SCALE_OBJ" and self.state.selected_obj:
-                    bbox = self.state.selected_obj.get_bounding_box()
-                    orig_w = bbox[2] - bbox[0]
-                    orig_h = bbox[3] - bbox[1]
-                    new_w = mx - self.state.scale_anchor[0]
-                    new_h = my - self.state.scale_anchor[1]
-                    sx = new_w / orig_w if orig_w != 0 else 1
-                    sy = new_h / orig_h if orig_h != 0 else 1
-                    if sx > 0.1 and sy > 0.1:
-                        t1 = Matrix3x3.translation(-self.state.scale_anchor[0], -self.state.scale_anchor[1])
-                        s = Matrix3x3.scaling(sx, sy)
-                        t2 = Matrix3x3.translation(self.state.scale_anchor[0], self.state.scale_anchor[1])
-                        net_matrix = np.dot(t2, np.dot(s, t1))
-                        self.state.selected_obj.apply_transform(net_matrix)
+                    px, py = self.state.scale_anchor
+                    old_x, old_y = self.state.drag_start
+                    sx = max(0.1, abs(mx - px) / max(1.0, abs(old_x - px)))
+                    sy = max(0.1, abs(my - py) / max(1.0, abs(old_y - py)))
+                    net_matrix = Matrix3x3.pivot_transform(Matrix3x3.scaling(sx, sy), px, py)
+                    self.state.selected_obj.apply_transform(net_matrix)
                     self.state.drag_start = (mx, my)
 
                 elif self.state.drawing and self.state.tool in ["LINE", "CIRCLE"]:

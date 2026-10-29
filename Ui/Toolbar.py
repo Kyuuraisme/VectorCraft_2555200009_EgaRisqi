@@ -25,6 +25,7 @@ class ToolbarView:
         render_txt("- [L] Line Tool", state.tool == "LINE")
         render_txt("- [C] Circle Tool", state.tool == "CIRCLE")
         render_txt("- [P] Pen/Bezier Tool", state.tool == "BEZIER")
+        render_txt("- [G] Polygon Tool", state.tool == "POLYGON")
         
         y += 15
         render_txt("ALGORITMA:", is_header=True)
