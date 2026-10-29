@@ -26,8 +26,19 @@ class ToolbarView:
         render_txt("- [C] Circle Tool", state.tool == "CIRCLE")
         render_txt("- [P] Pen/Bezier Tool", state.tool == "BEZIER")
         render_txt("- [G] Polygon Tool", state.tool == "POLYGON")
+        y += 8
+        render_txt("LINE TRANSFORM:", is_header=True)
+        render_txt("R/Q Rotasi ±15°")
+        render_txt("S/T Shear X/Y")
+        render_txt("Seret titik/pivot/rotasi")
+        y += 8
+        render_txt("PENGHAPUSAN:", is_header=True)
+        render_txt("Delete: Hapus objek terpilih")
+        render_txt("Ctrl+Delete/Ctrl+R: Reset semua")
+        render_txt("Esc: Batalkan gambar aktif")
         
         y += 15
         render_txt("ALGORITMA:", is_header=True)
         render_txt("- [B] Bresenham", state.algo == "Bresenham")
         render_txt("- [D] DDA", state.algo == "DDA")
+        return y

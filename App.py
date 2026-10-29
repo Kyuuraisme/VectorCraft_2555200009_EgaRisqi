@@ -91,8 +91,9 @@ class VectorCraftApp:
             
             # Panggil sub-tampilan komponen
             self.canvas_view.render(self.screen, self.width, self.height)
-            self.toolbar_view.draw_sidebar(self.screen, self.state)
-            self.inspector_view.draw_status(self.screen, self.state)
+            toolbar_bottom = self.toolbar_view.draw_sidebar(self.screen, self.state)
+            inspector_y = min(toolbar_bottom + 15, 650)
+            self.inspector_view.draw_status(self.screen, self.state, y_pos=inspector_y)
             
             pygame.display.flip()
             self.clock.tick(60)
@@ -116,10 +117,28 @@ class VectorCraftApp:
                 elif event.key == pygame.K_b: self.state.algo = "Bresenham"
                 elif event.key == pygame.K_d: self.state.algo = "DDA"
                 elif event.key == pygame.K_o: self.state.preview_outside = not self.state.preview_outside
+                elif (event.key in [pygame.K_DELETE, pygame.K_BACKSPACE]
+                      and pygame.key.get_mods() & (pygame.KMOD_CTRL | pygame.KMOD_META)):
+                    self.state.objects = []
+                    self.state.selected_obj = None
+                    self.state.drawing = False
+                    self.state.temp_points = []
+                    self.state.polygon_points = []
+                    self.state.drag_mode = None
+                    self.state.tool = "SELECT"
                 elif event.key in [pygame.K_DELETE, pygame.K_BACKSPACE]:
-                    if self.state.selected_obj and self.state.tool == "SELECT":
-                        self.state.objects.remove(self.state.selected_obj)
+                    if self.state.selected_obj:
+                        if self.state.selected_obj in self.state.objects:
+                            self.state.objects.remove(self.state.selected_obj)
                         self.state.selected_obj = None
+                elif event.key == pygame.K_r and pygame.key.get_mods() & pygame.KMOD_CTRL:
+                    self.state.objects = []
+                    self.state.selected_obj = None
+                    self.state.drawing = False
+                    self.state.temp_points = []
+                    self.state.polygon_points = []
+                    self.state.drag_mode = None
+                    self.state.tool = "SELECT"
                 elif event.key == pygame.K_RETURN and self.state.tool == "POLYGON" and len(self.state.polygon_points) >= 3:
                     nob = VectorShape("POLYGON")
                     nob.points = [list(p) for p in self.state.polygon_points]
@@ -129,9 +148,12 @@ class VectorCraftApp:
                     self.state.tool = "SELECT"
                 elif event.key == pygame.K_ESCAPE:
                     self.state.polygon_points = []
+                    self.state.temp_points = []
+                    self.state.drawing = False
+                    self.state.drag_mode = None
                     self.state.tool = "SELECT"
 
-                elif self.state.selected_obj and self.state.tool == "SELECT":
+                elif self.state.selected_obj and self.state.tool in ["SELECT", "LINE"]:
                     px, py = self.state.selected_obj.get_pivot()
                     step = 10 if pygame.key.get_mods() & pygame.KMOD_SHIFT else 1
                     if event.key == pygame.K_LEFT:
@@ -170,6 +192,33 @@ class VectorCraftApp:
                 if math.hypot(mx - self.state.artboard[2], my - self.state.artboard[3]) <= 12:
                     self.state.drag_mode = "RESIZE_ARTBOARD"
                     continue
+
+                # Gizmo khusus untuk garis terpilih saat tool LINE aktif
+                if self.state.tool == "LINE" and not self.state.drawing and self.state.selected_obj and self.state.selected_obj.type == "LINE":
+                    px, py = self.state.selected_obj.get_pivot()
+                    if math.hypot(mx - px, my - py) <= 10:
+                        self.state.drag_mode = "MOVE_PIVOT"
+                        continue
+                    rx, ry = px, py - 55
+                    if math.hypot(mx - rx, my - ry) <= 10:
+                        self.state.drag_mode = "ROTATE_OBJ"
+                        self.state.rotation_angle_start = math.atan2(my - py, mx - px)
+                        continue
+                    bbox = self.state.selected_obj.get_bounding_box()
+                    if math.hypot(mx - bbox[2], my - bbox[3]) <= 10:
+                        self.state.drag_mode = "SCALE_OBJ"
+                        self.state.drag_start = (mx, my)
+                        self.state.scale_anchor = (px, py)
+                        continue
+                    hit_line_handle = False
+                    for idx, point in enumerate(self.state.selected_obj.points):
+                        if math.hypot(mx - point[0], my - point[1]) <= 10:
+                            self.state.drag_mode = "DRAG_HANDLE"
+                            self.state.active_handle_idx = idx
+                            hit_line_handle = True
+                            break
+                    if hit_line_handle:
+                        continue
                 
                 # 2. Mode Seleksi Objek & Gizmo Handle
                 if self.state.tool == "SELECT":
@@ -209,7 +258,22 @@ class VectorCraftApp:
                     if not hit_any: self.state.selected_obj = None
 
                 # 3. Mode Mulai Menggambar
-                elif self.state.tool in ["LINE", "CIRCLE"]:
+                elif self.state.tool == "LINE":
+                    if not self.state.drawing:
+                        self.state.drawing = True
+                        self.state.temp_points = [[mx, my], [mx, my]]
+                    else:
+                        end_point = [mx, my]
+                        if math.hypot(end_point[0] - self.state.temp_points[0][0], end_point[1] - self.state.temp_points[0][1]) > 4:
+                            nob = VectorShape("LINE")
+                            nob.points = [list(self.state.temp_points[0]), end_point]
+                            self.state.objects.append(nob)
+                            self.state.selected_obj = nob
+                            self.state.temp_points = []
+                        self.state.drawing = False
+                        # Tetap berada di mode LINE untuk membuat garis berikutnya.
+                        self.state.tool = "LINE"
+                elif self.state.tool == "CIRCLE":
                     self.state.drawing = True
                     self.state.temp_points = [[mx, my], [mx, my]]
                 elif self.state.tool == "BEZIER":
@@ -230,7 +294,7 @@ class VectorCraftApp:
                         self.state.temp_points = self.state.polygon_points
 
             elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                if self.state.drawing and self.state.tool in ["LINE", "CIRCLE"]:
+                if self.state.drawing and self.state.tool == "CIRCLE":
                     nob = VectorShape(self.state.tool)
                     nob.points = [list(p) for p in self.state.temp_points]
                     self.state.objects.append(nob)

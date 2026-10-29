@@ -87,8 +87,22 @@ class CanvasView:
             if len(points) > 0:
                 pygame.draw.line(screen, (100, 180, 100), points[-1], pygame.mouse.get_pos(), 1)
 
+        # Titik awal/akhir dan garis preview fitur LINE berbasis dua klik
+        if self.state.tool == "LINE":
+            if self.state.selected_obj and self.state.selected_obj.type == "LINE" and not self.state.drawing:
+                for point in self.state.selected_obj.points:
+                    point = (int(point[0]), int(point[1]))
+                    pygame.draw.circle(screen, (255, 255, 255), point, 7)
+                    pygame.draw.circle(screen, (0, 180, 215), point, 7, 2)
+                    pygame.draw.circle(screen, (255, 50, 50), point, 2)
+            if self.state.drawing and self.state.temp_points:
+                start = (int(self.state.temp_points[0][0]), int(self.state.temp_points[0][1]))
+                pygame.draw.circle(screen, (255, 255, 255), start, 7)
+                pygame.draw.circle(screen, (255, 180, 0), start, 7, 2)
+                pygame.draw.circle(screen, (255, 50, 50), start, 2)
+
         # Transform Gizmo Objek Aktif
-        if self.state.tool == "SELECT" and self.state.selected_obj:
+        if self.state.tool in ["SELECT", "LINE"] and self.state.selected_obj:
             bbox = self.state.selected_obj.get_bounding_box()
             pygame.draw.rect(screen, (255, 50, 50), (bbox[0], bbox[1], bbox[2]-bbox[0], bbox[3]-bbox[1]), 1)
             pygame.draw.rect(screen, (0, 255, 0), (bbox[2]-4, bbox[3]-4, 8, 8)) # Scale Anchor

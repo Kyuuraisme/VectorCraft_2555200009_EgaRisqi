@@ -7,11 +7,28 @@ class InspectorView:
     def draw_status(self, screen, state, y_pos=300):
         # Menampilkan status koordinat objek terpilih atau informasi transformasi aktif
         y = y_pos
+        max_width = 160
+
         def print_lbl(text):
             nonlocal y
-            surf = self.font.render(text, True, (180, 180, 180))
-            screen.blit(surf, (15, y))
-            y += 22
+            words = text.split(" ")
+            lines = []
+            current = ""
+            for word in words:
+                candidate = word if not current else current + " " + word
+                if self.font.size(candidate)[0] <= max_width:
+                    current = candidate
+                else:
+                    if current:
+                        lines.append(current)
+                    current = word
+            if current:
+                lines.append(current)
+
+            for line in lines:
+                surf = self.font.render(line, True, (180, 180, 180))
+                screen.blit(surf, (15, y))
+                y += 20
 
         print_lbl("INSPEKTOR PROPERTI:")
         print_lbl(f"Preview Luar [O]: {'ON' if state.preview_outside else 'OFF'}")
@@ -24,7 +41,13 @@ class InspectorView:
             print_lbl(f"Pivot: {int(px)}, {int(py)}")
             print_lbl("Panah: Geser | Shift: 10px")
             print_lbl("R/Q: Rotasi +/-15° | S/T: Shear")
+            if state.tool == "LINE":
+                print_lbl("Titik biru: seret titik garis")
+                print_lbl("Handle biru: rotasi | kuning: pivot")
             print_lbl("H/J: Flip X/Y | [/] Skalakan")
             print_lbl("F: Reset Pivot | Seret poros")
         else:
-            print_lbl("Status: Tidak ada objek")
+            print_lbl("Status: Tidak ada objek terpilih")
+            print_lbl("Delete: hapus objek terpilih")
+            print_lbl("Ctrl+Delete / Ctrl+R: reset semua")
+            print_lbl("Esc: batalkan proses gambar")

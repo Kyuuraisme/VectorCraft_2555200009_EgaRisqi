@@ -38,7 +38,7 @@ Untuk berpindah mode kerja, pilih menu, atau melakukan manipulasi objek, gunakan
 
 ###  Mode Alat Kerja (Tools)
 *   **`V`** : **Select & Transform Tool** — Mode untuk memilih, menggeser, merotasi, dan mengubah skala objek.
-*   **`L`** : **Line Tool** — Membuat garis vektor lurus dengan melakukan klik & tahan (*drag*) di kanvas.
+*   **`L`** : **Line Tool** — Klik satu kali untuk titik awal, arahkan kursor untuk melihat preview, lalu klik lagi untuk membuat garis. Tool tetap aktif untuk membuat garis berikutnya. Titik awal dan akhir tetap terlihat sebagai handle biru-merah dan dapat diseret. Pada garis terpilih, R/Q memutar ±15°, S/T melakukan shear X/Y, serta pivot dan handle rotasi dapat diseret.
 *   **`C`** : **Circle Tool** — Membuat lingkaran presisi berbasis radius dengan melakukan *drag* dari titik pusat.
 *   **`P`** : **Pen / Bézier Tool** — Klik sekali pada artboard untuk memunculkan struktur kurva Bézier interaktif.
 
@@ -51,6 +51,8 @@ Untuk berpindah mode kerja, pilih menu, atau melakukan manipulasi objek, gunakan
 *   **`R`** : Memutar (*Rotate*) objek aktif sebesar **+15°** searah jarum jam secara homogen terhadap titik pusat objek (*Center Pivot*).
 *   **`S`** : Memiringkan (*Shear*) objek aktif secara linear pada koordinat sumbu X sebesar **+0.1**.
 *   **`DELETE` / `BACKSPACE`** : Menghapus objek vektor yang sedang terpilih dari lembar kerja.
+*   **`Ctrl + DELETE` / `Ctrl + BACKSPACE` / `Ctrl + R`** : Menghapus dan mereset seluruh objek dari kanvas.
+*   **`ESC`** : Membatalkan gambar garis atau poligon yang sedang aktif.
 *   **`G`** : Membuat poligon; klik setiap titik, lalu tekan `ENTER` untuk menyelesaikannya.
 *   **`Panah` / `Shift+Panah`** : Menggeser objek 1 px / 10 px.
 *   **`R` / `Q`** : Rotasi objek terhadap pivot sebesar +15° / -15°.
