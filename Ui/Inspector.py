@@ -44,6 +44,8 @@ class InspectorView:
             if state.tool == "LINE":
                 print_lbl("Titik biru: seret titik garis")
                 print_lbl("Handle biru: rotasi | kuning: pivot")
+            if state.selected_obj.type == "AIRPLANE":
+                print_lbl("Vector pesawat: klik, rotasi, shear, skalakan")
             print_lbl("H/J: Flip X/Y | [/] Skalakan")
             print_lbl("F: Reset Pivot | Seret poros")
         else:

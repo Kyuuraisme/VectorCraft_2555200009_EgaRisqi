@@ -62,7 +62,7 @@ class CanvasView:
                 CurveEngine.draw_bezier(px_array, obj.points[0], obj.points[1], obj.points[2], obj.points[3], color_outside, algo, scr_w, scr_h)
             CurveEngine.draw_bezier(px_array, obj.points[0], obj.points[1], obj.points[2], obj.points[3], color, algo, scr_w, scr_h)
 
-        elif obj.type == "POLYGON" and len(obj.points) >= 2:
+        elif obj.type in ["POLYGON", "AIRPLANE"] and len(obj.points) >= 2:
             segment_count = len(obj.points) if not force_color else len(obj.points) - 1
             for i in range(segment_count):
                 p0 = obj.points[i]
@@ -86,6 +86,21 @@ class CanvasView:
                 pygame.draw.circle(screen, (255, 50, 50), point, 2)
             if len(points) > 0:
                 pygame.draw.line(screen, (100, 180, 100), points[-1], pygame.mouse.get_pos(), 1)
+
+        # Preview pesawat saat Polygon Tool aktif
+        if self.state.tool == "POLYGON" and not self.state.polygon_points:
+            mx, my = pygame.mouse.get_pos()
+            template = [
+                (90, 0), (20, -18), (5, -55), (-10, -55),
+                (0, -20), (-55, -15), (-75, -35), (-85, -35),
+                (-75, -10), (-55, -5), (-55, 5), (-75, 10),
+                (-85, 35), (-75, 35), (-55, 15), (0, 20),
+                (-10, 55), (5, 55), (20, 18)
+            ]
+            preview_points = [(int(mx + x), int(my + y)) for x, y in template]
+            for i, point in enumerate(preview_points):
+                next_point = preview_points[(i + 1) % len(preview_points)]
+                pygame.draw.line(screen, (90, 180, 90), point, next_point, 1)
 
         # Titik awal/akhir dan garis preview fitur LINE berbasis dua klik
         if self.state.tool == "LINE":

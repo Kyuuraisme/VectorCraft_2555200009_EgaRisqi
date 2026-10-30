@@ -53,7 +53,7 @@ Untuk berpindah mode kerja, pilih menu, atau melakukan manipulasi objek, gunakan
 *   **`DELETE` / `BACKSPACE`** : Menghapus objek vektor yang sedang terpilih dari lembar kerja.
 *   **`Ctrl + DELETE` / `Ctrl + BACKSPACE` / `Ctrl + R`** : Menghapus dan mereset seluruh objek dari kanvas.
 *   **`ESC`** : Membatalkan gambar garis atau poligon yang sedang aktif.
-*   **`G`** : Membuat poligon; klik setiap titik, lalu tekan `ENTER` untuk menyelesaikannya.
+*   **`G`** : Mode Polygon/Pesawat; arahkan kursor lalu klik sekali untuk memunculkan siluet vector pesawat. Pesawat dapat dipilih dan diputar, di-shear, serta diskalakan dengan gizmo dan shortcut transformasi.
 *   **`Panah` / `Shift+Panah`** : Menggeser objek 1 px / 10 px.
 *   **`R` / `Q`** : Rotasi objek terhadap pivot sebesar +15° / -15°.
 *   **`S` / `T`** : Shear pada sumbu X / Y sebesar +0.1.

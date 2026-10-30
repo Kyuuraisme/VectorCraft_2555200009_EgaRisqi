@@ -48,6 +48,18 @@ class VectorShape:
         bbox = self.get_bounding_box()
         return bbox[0] <= px <= bbox[2] and bbox[1] <= py <= bbox[3]
 
+def create_airplane_points(center_x, center_y, scale=1.0):
+    """Siluet pesawat vektor 2D yang mengarah ke kanan."""
+    template = [
+        (90, 0), (20, -18), (5, -55), (-10, -55),
+        (0, -20), (-55, -15), (-75, -35), (-85, -35),
+        (-75, -10), (-55, -5), (-55, 5), (-75, 10),
+        (-85, 35), (-75, 35), (-55, 15), (0, 20),
+        (-10, 55), (5, 55), (20, 18)
+    ]
+    return [[center_x + x * scale, center_y + y * scale] for x, y in template]
+
+
 class AppStateManager:
     """Mengelola state internal sistem secara terpusat (Model-Controller Context)"""
     def __init__(self):
@@ -112,6 +124,7 @@ class VectorCraftApp:
                 elif event.key == pygame.K_p: self.state.tool = "BEZIER"
                 elif event.key == pygame.K_g:
                     self.state.tool = "POLYGON"
+                    self.state.selected_obj = None
                     self.state.polygon_points = []
                     self.state.drawing = False
                 elif event.key == pygame.K_b: self.state.algo = "Bresenham"
@@ -139,12 +152,19 @@ class VectorCraftApp:
                     self.state.polygon_points = []
                     self.state.drag_mode = None
                     self.state.tool = "SELECT"
-                elif event.key == pygame.K_RETURN and self.state.tool == "POLYGON" and len(self.state.polygon_points) >= 3:
-                    nob = VectorShape("POLYGON")
-                    nob.points = [list(p) for p in self.state.polygon_points]
-                    self.state.objects.append(nob)
-                    self.state.selected_obj = nob
+                elif event.key == pygame.K_RETURN and self.state.tool == "POLYGON":
+                    if len(self.state.polygon_points) >= 3:
+                        nob = VectorShape("POLYGON")
+                        nob.points = [list(p) for p in self.state.polygon_points]
+                        self.state.objects.append(nob)
+                        self.state.selected_obj = nob
+                    else:
+                        nob = VectorShape("AIRPLANE")
+                        nob.points = create_airplane_points(mx, my)
+                        self.state.objects.append(nob)
+                        self.state.selected_obj = nob
                     self.state.polygon_points = []
+                    self.state.drawing = False
                     self.state.tool = "SELECT"
                 elif event.key == pygame.K_ESCAPE:
                     self.state.polygon_points = []
@@ -288,10 +308,14 @@ class VectorCraftApp:
                         self.state.selected_obj = nob
                         self.state.tool = "SELECT"
                 elif self.state.tool == "POLYGON":
-                    if len(self.state.polygon_points) < 2 or math.hypot(mx - self.state.polygon_points[-1][0], my - self.state.polygon_points[-1][1]) > 4:
-                        self.state.polygon_points.append([mx, my])
-                        self.state.drawing = True
-                        self.state.temp_points = self.state.polygon_points
+                    nob = VectorShape("AIRPLANE")
+                    nob.points = create_airplane_points(mx, my)
+                    self.state.objects.append(nob)
+                    self.state.selected_obj = nob
+                    self.state.polygon_points = []
+                    self.state.drawing = False
+                    self.state.temp_points = []
+                    self.state.tool = "SELECT"
 
             elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 if self.state.drawing and self.state.tool == "CIRCLE":
