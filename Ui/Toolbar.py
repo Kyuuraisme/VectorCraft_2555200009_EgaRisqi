@@ -25,6 +25,8 @@ class ToolbarView:
         render_txt("- [L] Line Tool", state.tool == "LINE")
         render_txt("- [C] Circle Tool", state.tool == "CIRCLE")
         render_txt("- [P] Pen/Bezier Tool", state.tool == "BEZIER")
+        if state.tool == "BEZIER":
+            render_txt("  Klik dua kali untuk kurva")
         render_txt("- [G] Pesawat/Polygon", state.tool == "POLYGON")
         y += 8
         render_txt("TRANSFORMASI VEKTOR:", is_header=True)

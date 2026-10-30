@@ -173,7 +173,7 @@ class VectorCraftApp:
                     self.state.drag_mode = None
                     self.state.tool = "SELECT"
 
-                elif self.state.selected_obj and self.state.tool in ["SELECT", "LINE"]:
+                elif self.state.selected_obj and self.state.tool in ["SELECT", "LINE", "BEZIER"]:
                     px, py = self.state.selected_obj.get_pivot()
                     step = 10 if pygame.key.get_mods() & pygame.KMOD_SHIFT else 1
                     if event.key == pygame.K_LEFT:
@@ -213,32 +213,34 @@ class VectorCraftApp:
                     self.state.drag_mode = "RESIZE_ARTBOARD"
                     continue
 
-                # Gizmo khusus untuk garis terpilih saat tool LINE aktif
-                if self.state.tool == "LINE" and not self.state.drawing and self.state.selected_obj and self.state.selected_obj.type == "LINE":
-                    px, py = self.state.selected_obj.get_pivot()
-                    if math.hypot(mx - px, my - py) <= 10:
-                        self.state.drag_mode = "MOVE_PIVOT"
-                        continue
-                    rx, ry = px, py - 55
-                    if math.hypot(mx - rx, my - ry) <= 10:
-                        self.state.drag_mode = "ROTATE_OBJ"
-                        self.state.rotation_angle_start = math.atan2(my - py, mx - px)
-                        continue
-                    bbox = self.state.selected_obj.get_bounding_box()
-                    if math.hypot(mx - bbox[2], my - bbox[3]) <= 10:
-                        self.state.drag_mode = "SCALE_OBJ"
-                        self.state.drag_start = (mx, my)
-                        self.state.scale_anchor = (px, py)
-                        continue
-                    hit_line_handle = False
-                    for idx, point in enumerate(self.state.selected_obj.points):
-                        if math.hypot(mx - point[0], my - point[1]) <= 10:
-                            self.state.drag_mode = "DRAG_HANDLE"
-                            self.state.active_handle_idx = idx
-                            hit_line_handle = True
-                            break
-                    if hit_line_handle:
-                        continue
+                # Gizmo khusus untuk objek terpilih saat tool LINE atau BEZIER aktif
+                if self.state.tool in ["LINE", "BEZIER"] and not self.state.drawing and self.state.selected_obj:
+                    expected_type = self.state.tool
+                    if self.state.selected_obj.type == expected_type:
+                        px, py = self.state.selected_obj.get_pivot()
+                        if math.hypot(mx - px, my - py) <= 10:
+                            self.state.drag_mode = "MOVE_PIVOT"
+                            continue
+                        rx, ry = px, py - 55
+                        if math.hypot(mx - rx, my - ry) <= 10:
+                            self.state.drag_mode = "ROTATE_OBJ"
+                            self.state.rotation_angle_start = math.atan2(my - py, mx - px)
+                            continue
+                        bbox = self.state.selected_obj.get_bounding_box()
+                        if math.hypot(mx - bbox[2], my - bbox[3]) <= 10:
+                            self.state.drag_mode = "SCALE_OBJ"
+                            self.state.drag_start = (mx, my)
+                            self.state.scale_anchor = (px, py)
+                            continue
+                        hit_handle = False
+                        for idx, point in enumerate(self.state.selected_obj.points):
+                            if math.hypot(mx - point[0], my - point[1]) <= 10:
+                                self.state.drag_mode = "DRAG_HANDLE"
+                                self.state.active_handle_idx = idx
+                                hit_handle = True
+                                break
+                        if hit_handle:
+                            continue
                 
                 # 2. Mode Seleksi Objek & Gizmo Handle
                 if self.state.tool == "SELECT":
@@ -301,12 +303,26 @@ class VectorCraftApp:
                         self.state.drawing = True
                         self.state.temp_points = [[mx, my], [mx+40, my-60], [mx+80, my-60], [mx+120, my]]
                     else:
-                        nob = VectorShape("BEZIER")
-                        nob.points = [list(p) for p in self.state.temp_points]
-                        self.state.objects.append(nob)
+                        end_point = [mx, my]
+                        start_point = self.state.temp_points[0]
+                        if math.hypot(end_point[0] - start_point[0], end_point[1] - start_point[1]) > 4:
+                            nob = VectorShape("BEZIER")
+                            nob.points = [list(p) for p in self.state.temp_points]
+                            nob.points[3] = end_point
+                            nob.points[1] = [
+                                start_point[0] + (end_point[0] - start_point[0]) / 3,
+                                start_point[1] + (end_point[1] - start_point[1]) / 3
+                            ]
+                            nob.points[2] = [
+                                start_point[0] + 2 * (end_point[0] - start_point[0]) / 3,
+                                start_point[1] + 2 * (end_point[1] - start_point[1]) / 3
+                            ]
+                            self.state.objects.append(nob)
+                            self.state.selected_obj = nob
+                        self.state.temp_points = []
                         self.state.drawing = False
-                        self.state.selected_obj = nob
-                        self.state.tool = "SELECT"
+                        # Tetap di Pen Tool agar kurva berikutnya dapat dibuat langsung.
+                        self.state.tool = "BEZIER"
                 elif self.state.tool == "POLYGON":
                     nob = VectorShape("AIRPLANE")
                     nob.points = create_airplane_points(mx, my)
@@ -366,10 +382,11 @@ class VectorCraftApp:
                     self.state.temp_points[1] = [mx, my]
 
                 elif self.state.drawing and self.state.tool == "BEZIER":
-                    dx = mx - self.state.temp_points[0][0]
-                    dy = my - self.state.temp_points[0][1]
-                    self.state.temp_points[1] = [self.state.temp_points[0][0] + dx * 0.3, self.state.temp_points[0][1] + dy]
-                    self.state.temp_points[2] = [self.state.temp_points[0][0] + dx * 0.7, self.state.temp_points[0][1]]
+                    start = self.state.temp_points[0]
+                    dx = mx - start[0]
+                    dy = my - start[1]
+                    self.state.temp_points[1] = [start[0] + dx / 3, start[1] + dy / 3]
+                    self.state.temp_points[2] = [start[0] + 2 * dx / 3, start[1] + 2 * dy / 3]
                     self.state.temp_points[3] = [mx, my]
 
 # --- MAIN ENTRY POINT ---
